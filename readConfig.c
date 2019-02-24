@@ -1,18 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#define CONFIG_FILE_PATH  "config.conf"
-#define CONFIG_FILE_DATA "PORT=8081"
- 
+#define CONFIG_FILE_DIR   "/etc/webserver"
+#define CONFIG_FILE_PATH  "/etc/webserver/config.conf"
+#define CONFIG_FILE_DATA  "PORT=8081"
+
+struct stat s; 
+
+/*
+ * En caso de que el directorio especificado no exista lo crea
+ */
+void verifyDir() {
+
+   int err = stat(CONFIG_FILE_DIR, &s);
+
+   if(-1 == err) {
+      mkdir(CONFIG_FILE_DIR, 0700);
+      printf("Directorio creado.\n");
+   }
+
+}
+
 /*
  * Funcion que crea el archivo de configuracion en caso que exista
  */
 void createConfigFile() {
+
+   verifyDir();
    
    FILE* file = fopen(CONFIG_FILE_PATH, "w");
    
    if(file == NULL) {
-      printf("No fue posible crear el archivo de configuración.\n");
+      printf("No fue posible crear el archivo de configuración.\n Intente con sudo ./ejecutable");
       exit(EXIT_FAILURE);
    }
    
@@ -20,6 +42,8 @@ void createConfigFile() {
       fputs(CONFIG_FILE_DATA, file);
       fclose(file);
    }
+
+   printf("Archivo creado.\n");
       
 }
 
