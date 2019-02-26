@@ -7,8 +7,8 @@
 
 #define CONFIG_FILE_DIR   "/etc/webserver"
 #define CONFIG_FILE_PATH  "/etc/webserver/config.conf"
-#define CONFIG_FILE_DEFAULT_PORT "PORT=8081"
-#define CONFIG_FILE_DEFAULT_LOG_PATH "LOGFILE=/lo/que/gabito/quiera"  
+#define CONFIG_FILE_DEFAULT_PORT "PORT=8001"
+#define CONFIG_FILE_DEFAULT_LOG_PATH "LOGFILE=/var/log/webserver"  
 
 struct stat s; 
 
@@ -105,7 +105,7 @@ char* getLogPathFromConfigFile() {
 
    if(file == NULL) {
       printf("No fue posible leer el archivo de configuración\n");
-      exit(EXIT_FAILURE);
+      return NULL;
    }
 
    char* logFilePath = (char*)calloc(256, sizeof(char));
