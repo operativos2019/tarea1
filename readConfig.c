@@ -5,9 +5,11 @@
 #include <unistd.h>
 #include <string.h>
 
-#define CONFIG_FILE_DIR   "/etc/webserver"
-#define CONFIG_FILE_PATH  "/etc/webserver/config.conf"
+#define CONFIG_FILE_DIR "/etc/webserver"
+#define CONFIG_FILE_PATH "/etc/webserver/config.conf"
+#define DEFAULT_PORT 8001
 #define CONFIG_FILE_DEFAULT_PORT "PORT=8001"
+#define DEFAULT_LOG_PATH "/var/log/webserver"
 #define CONFIG_FILE_DEFAULT_LOG_PATH "LOGFILE=/var/log/webserver"  
 
 struct stat s; 
@@ -55,12 +57,13 @@ void createConfigFile() {
 
 /*
  *  Funcion que retorna el puerto especificado en el archivo de configuracion
- *  si no lo encuentra retorna NULL
+ *  si no lo encuentra retorna el puerto por defecto
  */
 int* getPortFromConfigFile() {
 
    FILE* file;
- 
+   int* port = calloc(1, sizeof(int));
+
    file = fopen(CONFIG_FILE_PATH, "r"); // read mode
 
    if(file == NULL) {
@@ -69,11 +72,10 @@ int* getPortFromConfigFile() {
    }
 
    if(file == NULL) {
-      printf("No fue posible leer el archivo de configuración\n");
-      exit(EXIT_FAILURE);
+      printf("No fue posible leer el archivo de configuración\nSe utilizó el puerto por default\n");
+      *port = DEFAULT_PORT;
+      return port;
    }
-
-   int* port = calloc(1, sizeof(int));
 
    while(!feof(file)) {
       if(fscanf(file,"PORT=%d", port) == 1) {
@@ -83,8 +85,9 @@ int* getPortFromConfigFile() {
    }
 
    if((port != NULL) && (*port == '\0')) {
-      printf("No se encontró el puerto en el archivo de configuración\n"); 
-      return NULL;
+      printf("No se encontró el puerto en el archivo de configuración\nSe utilizó el puerto por default\n"); 
+      *port = DEFAULT_PORT;
+      return port;
    }
 
    fclose(file);
@@ -95,20 +98,20 @@ int* getPortFromConfigFile() {
 
 /*
  *  Funcion que retorna la ruta al log file del webserver
- *  si no lo encuentra retorna NULL
+ *  si no lo encuentra el path por defecto
  */
 char* getLogPathFromConfigFile() {
    
    FILE* file;
+   char* logFilePath = (char*)calloc(256, sizeof(char));
 
    file = fopen(CONFIG_FILE_PATH, "r");
 
    if(file == NULL) {
-      printf("No fue posible leer el archivo de configuración\n");
-      return NULL;
+      printf("No fue posible leer el archivo de configuración\nSe utilizó el path por default\n");
+      logFilePath = DEFAULT_LOG_PATH;
+      return logFilePath;
    }
-
-   char* logFilePath = (char*)calloc(256, sizeof(char));
 
    while(!feof(file)) {
       if(fscanf(file,"LOGFILE=%s", logFilePath) == 1) {
@@ -118,8 +121,9 @@ char* getLogPathFromConfigFile() {
    }
 
    if((logFilePath != NULL) && (logFilePath[0] == '\0')) {
-      printf("No se encontró el logfile path en el archivo de configuración\n"); 
-      return NULL;
+      printf("No se encontró el logfile path en el archivo de configuración\nSe utilizó el path por default\n"); 
+      logFilePath = DEFAULT_LOG_PATH;
+      return logFilePath;
    }
 
    fclose(file);
