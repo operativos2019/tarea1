@@ -16,8 +16,10 @@
 
 int main()
 {
-
+    int exiting = 1;
+    char *httpHeader;  
     int port = 8080; //localhost port
+
 
     struct sockaddr_in socketAddress;
 
@@ -32,7 +34,7 @@ int main()
     if (errno <= -1)
     {
         perror("Error while creating file descriptor");
-        return -1;
+        exiting = 0;
     }
 
     socklen_t address_len = sizeof socketAddress;                                 //kernel space required to copy de socket address
@@ -40,7 +42,8 @@ int main()
     if (errno <= -1)
     {
         perror("Error while binding the socket");
-        return -1;
+        exiting = 0;
+
     }
 
     int backlog = 10000;                      //number of queued operations allowed
@@ -49,13 +52,16 @@ int main()
     if (errno <= -1)
     {
         perror("Error while creating the listener");
-        return -1;
+        exiting = 0;
     }
 
+    if (exiting == 0){
+
+        printf("Try again later\n");
+        return -1;
+    }
     int nextSocket;
-    int exiting = 0;
     //http response header
-    char *httpHeader;  
     while (1)
     {
         printf("Init...\n");
@@ -95,17 +101,12 @@ int main()
                     requestBody[finish - start] = '\0';
                 }
             }
-            else
-            {
-                //tentative
-                perror("Error while reading request (1)");
-                return -1;
-            }
 
             if (requestBody == NULL || requestBody == "\0")
             {
                 perror("Error while reading request (2)");
-                break;
+                printf("Bad request");
+                continue;
             }
 
             printf("Reading the file %s\n", requestBody);
@@ -131,31 +132,32 @@ int main()
                 printf("%d\n", fsize);
 
                 /*Creates the body message*/
-                char *message = (char *)malloc(fsize);
+                char * message = (char *)malloc(fsize);
                 int nread = fread(message, 1, sizeof(message)*fsize, f);
 
                 printf("Number read: %d\n", nread);
-                for (int i = 0; i < nread; ++i){
+                /*for (int i = 0; i < nread; ++i){
                     printf("%d", message[i]);
                 }
-                printf("\n");
-                printf("%s", message);
+                printf("\n");*/
 
                 /*Sets up the header*/
                 httpHeader = HTTP_OK;
-                char *header = (char *) malloc (sizeof(* httpHeader) * strlen(httpHeader)+1);
-                sprintf(header, "%s%s", httpHeader, "\n\n"); //creates the http header
+                char *header = (char *) malloc (strlen(httpHeader)+1);
+                sprintf(header, "%s%s", httpHeader, "\n"); //creates the http header
 
                 /*Sets up the response message*/
 
-                char *response = (char *) malloc(sizeof(* message) * strlen(message) + sizeof (* header)* strlen(header));
-                sprintf(response, "%s%s", header, message); //generates the http message body
+                char *response = (char *) malloc(nread + strlen(header));
+                memcpy(response, header, strlen(header));
+                memcpy(response + strlen(header), message, nread);
+                //sprintf(response, "%s%s", header, message); //generates the http message body
 
                 //printf("Response: %s", response);
                 //writes the file
             
                 printf("Writing...\n");
-                write(nextSocket, response, strlen(response));
+                write(nextSocket, response, strlen(header)+ nread);
                 free(requestBody);
                 free(response);
 
