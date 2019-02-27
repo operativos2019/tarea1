@@ -1,13 +1,23 @@
 #include <stdio.h>      // I/O
 #include <sys/socket.h> //sockets
-#include <unistd.h>     //required for close()
+#include <unistd.h>     //required for access()
 #include <netinet/in.h> //required for socket address management
 #include <string.h>     //required for memset()
 #include <stdlib.h>
 
+
+#define HTTP_OK "HTTP/1.1 200 OK\n"
+#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\n"
+#define HTTP_FORBIDDEN "HTTP/1.1 403 FORBIDDEN\n"
+#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\n"
+#define HTTP_TOO_MANY "HTTP/1.1 429 TOO MANY REQUESTS\n"
+#define HTTP_INTERNAL "HTTP/1.1 500 INTERNAL SERVER ERROR\n"
+#define HTTP_UNAVAILABLE "HTTP/1.1 503 SERVICE UNAVAILABLE\n"
+
 int main()
 {
-    int port = 8000; //localhost port
+
+    int port = 8080; //localhost port
 
     struct sockaddr_in socketAddress;
 
@@ -33,7 +43,7 @@ int main()
         return -1;
     }
 
-    int backlog = 30;                        //number of queued operations allowed
+    int backlog = 10000;                      //number of queued operations allowed
     errno = listen(fileDescriptor, backlog); //Creates the listener on the socket
 
     if (errno <= -1)
@@ -45,10 +55,10 @@ int main()
     int nextSocket;
     int exiting = 0;
     //http response header
-    char *httpHeader = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n";
+    char *httpHeader;  
     while (1)
     {
-        printf("Serving...\n");
+        printf("Init...\n");
         //Accepts the next item in the queue
         errno = (nextSocket = accept(fileDescriptor, (struct sockaddr *)&socketAddress, &address_len));
         if (errno <= -1)
@@ -57,50 +67,104 @@ int main()
             exiting = -1;
             break;
         }
-        char request[10000] = {0};
-        char response[400000] = {0};
-
-        printf("Reading the request...\n");
-        read(nextSocket, request, 10000); //reads the file
-        //printf("%s\n", request);          //Get the request
-
-        //split the GET request
-        const char *begin = "GET /";
-        const char *end = " HTTP";
-        char *requestBody = NULL;
-        char *start, *finish;
-        if (start = strstr(request, begin))
+        else
         {
-            start += strlen(begin);
-            if (finish = strstr(start, end))
+            char request[10000] = {0};
+
+            read(nextSocket, request, 10000); //reads the file
+            if (request == "\0" || request == NULL)
             {
-                requestBody = (char *)malloc(finish - start + 1);
-                memcpy(requestBody, start, finish - start);
-                requestBody[finish - start] = '\0';
+                continue;
             }
+            printf("Reading the request...\n");
+
+            /*********************  Getting the request ****************/
+            const char *begin = "GET /";
+            const char *end = " HTTP";
+            char *requestBody = NULL;
+            char *start, *finish;
+
+            //generates the Get request string
+            if (start = strstr(request, begin))
+            {
+                start += strlen(begin);
+                if (finish = strstr(start, end))
+                {
+                    requestBody = (char *)malloc(finish - start + 1);
+                    memcpy(requestBody, start, finish - start);
+                    requestBody[finish - start] = '\0';
+                }
+            }
+            else
+            {
+                //tentative
+                perror("Error while reading request (1)");
+                return -1;
+            }
+
+            if (requestBody == NULL || requestBody == "\0")
+            {
+                perror("Error while reading request (2)");
+                break;
+            }
+
+            printf("Reading the file %s\n", requestBody);
+
+            //*****check if file can be found****
+
+            printf("Checking the file integrity");
+            if (access(requestBody, R_OK) == -1)
+            {
+                printf ("... File is not ok\n");
+                perror("File does not exists");
+            }
+            else
+            {
+                printf ("... File is ok\n");
+                FILE *f = fopen(requestBody, "rb"); //open the file in binary mode
+                fseek(f, 0, SEEK_END);
+
+                printf ("Checking file size...");
+                int fsize = ftell(f); //binary file size
+                fseek(f, 0, 0);
+
+                printf("%d\n", fsize);
+
+                /*Creates the body message*/
+                char *message = (char *)malloc(fsize);
+                int nread = fread(message, 1, sizeof(message)*fsize, f);
+
+                printf("Number read: %d\n", nread);
+                for (int i = 0; i < nread; ++i){
+                    printf("%d", message[i]);
+                }
+                printf("\n");
+                printf("%s", message);
+
+                /*Sets up the header*/
+                httpHeader = HTTP_OK;
+                char *header = (char *) malloc (sizeof(* httpHeader) * strlen(httpHeader)+1);
+                sprintf(header, "%s%s", httpHeader, "\n\n"); //creates the http header
+
+                /*Sets up the response message*/
+
+                char *response = (char *) malloc(sizeof(* message) * strlen(message) + sizeof (* header)* strlen(header));
+                sprintf(response, "%s%s", header, message); //generates the http message body
+
+                //printf("Response: %s", response);
+                //writes the file
+            
+                printf("Writing...\n");
+                write(nextSocket, response, strlen(response));
+                free(requestBody);
+                free(response);
+
+            }
+
+            //closes the socket
+            
+            close(nextSocket);
         }
-        
-        printf("Reading the file 1\n");
-        
-        FILE *f = fopen("sample.html", "rb");
-        fseek(f, 0, SEEK_END);
-        int fsize = ftell(f);
-        fseek(f, 0, 0);
-
-        printf ("%d\n", fsize);
-
-        char * message = (char * ) malloc(fsize);
-        fread(message, fsize, 1, f);
-
-        sprintf(response, "%s%s", httpHeader, message);
-
-        //writes the file
-        printf("Writing... \n");
-        write(nextSocket, response, strlen(response));
-
-        //closes the socket
-        close(nextSocket);
-        break;
     }
     return exiting;
 }
