@@ -38,7 +38,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-
 //SOBRE EL SERVER
 static int running = 0;
 static int delay = 1;
@@ -50,13 +49,24 @@ static char *app_name = NULL;
 static FILE *log_stream;
 
 //SOBRE EL ARCHIVO DE CONFIG
-#define CONFIG_FILE_DIR   "/etc/webserver"
-#define CONFIG_FILE_PATH  "/etc/webserver/config.conf"
+#define CONFIG_FILE_DIR "/etc/webserver"
+#define CONFIG_FILE_PATH "/etc/webserver/config.conf"
 #define CONFIG_FILE_DEFAULT_PORT "PORT=8001"
-#define CONFIG_FILE_DEFAULT_LOG_PATH "LOGFILE=/var/log/webserver.log"  
+#define CONFIG_FILE_DEFAULT_LOG_PATH "LOGFILE=/var/log/webserver.log"
 
-struct stat s; 
+struct stat s;
 
+#define HTTP_CHUNK "HTTP/1.1 200 OK\nTransfer-Encoding: chunked\n\n"
+#define HTTP_OK "HTTP/1.1 200 OK\n\n"
+#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\n\n"
+#define HTTP_FORBIDDEN "HTTP/1.1 403 FORBIDDEN\n\n"
+#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\n\n"
+#define HTTP_TOO_MANY "HTTP/1.1 429 TOO MANY REQUESTS\n\n"
+#define HTTP_INTERNAL "HTTP/1.1 500 INTERNAL SERVER ERROR\n\n"
+#define HTTP_UNAVAILABLE "HTTP/1.1 503 SERVICE UNAVAILABLE\n\n"
+#define NO_HEADER "NO_HEADER\n\n"
+
+#define PATH "/home/ger534/Desktop/"
 
 /**
  * \brief This function will daemonize this app
@@ -70,17 +80,20 @@ static void daemonize()
 	pid = fork();
 
 	/* An error occurred */
-	if (pid < 0) {
+	if (pid < 0)
+	{
 		exit(EXIT_FAILURE);
 	}
 
 	/* Success: Let the parent terminate */
-	if (pid > 0) {
+	if (pid > 0)
+	{
 		exit(EXIT_SUCCESS);
 	}
 
 	/* On success: The child process becomes session leader */
-	if (setsid() < 0) {
+	if (setsid() < 0)
+	{
 		exit(EXIT_FAILURE);
 	}
 
@@ -91,12 +104,14 @@ static void daemonize()
 	pid = fork();
 
 	/* An error occurred */
-	if (pid < 0) {
+	if (pid < 0)
+	{
 		exit(EXIT_FAILURE);
 	}
 
 	/* Success: Let the parent terminate */
-	if (pid > 0) {
+	if (pid > 0)
+	{
 		exit(EXIT_SUCCESS);
 	}
 
@@ -108,7 +123,8 @@ static void daemonize()
 	chdir("/");
 
 	/* Close all open file descriptors */
-	for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--) {
+	for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--)
+	{
 		close(fd);
 	}
 
@@ -121,12 +137,14 @@ static void daemonize()
 	if (pid_file_name != NULL)
 	{
 		char str[256];
-		pid_fd = open(pid_file_name, O_RDWR|O_CREAT, 0640);
-		if (pid_fd < 0) {
+		pid_fd = open(pid_file_name, O_RDWR | O_CREAT, 0640);
+		if (pid_fd < 0)
+		{
 			/* Can't open lockfile */
 			exit(EXIT_FAILURE);
 		}
-		if (lockf(pid_fd, F_TLOCK, 0) < 0) {
+		if (lockf(pid_fd, F_TLOCK, 0) < 0)
+		{
 			/* Can't lock file */
 			exit(EXIT_FAILURE);
 		}
@@ -142,119 +160,161 @@ static void daemonize()
  * En caso de que el directorio especificado exista
  * de lo contrario lo crea
  */
-void verifyConfigDir() {
+void verifyConfigDir()
+{
 
-   int err = stat(CONFIG_FILE_DIR, &s);
+	int err = stat(CONFIG_FILE_DIR, &s);
 
-   if(-1 == err) {
-      mkdir(CONFIG_FILE_DIR, 0700);
-      printf("Directorio de configuracion creado.\n");
-   }
-
+	if (-1 == err)
+	{
+		mkdir(CONFIG_FILE_DIR, 0700);
+		printf("Directorio de configuracion creado.\n");
+	}
 }
 
 /*
  * Funcion que verifica que el archivo de configuracion exista
  * en caso contrario lo crea
  */
-void createConfigFile() {
+void createConfigFile()
+{
 
-   verifyConfigDir();
-   
-   FILE* file = fopen(CONFIG_FILE_PATH, "w");
-   
-   if(file == NULL) {
-      printf("No fue posible crear el archivo de configuración.\n Intente con sudo ./ejecutable\n");
-      exit(EXIT_FAILURE);
-   }
-   
-   else {
-      fputs(CONFIG_FILE_DEFAULT_PORT , file);
-      fputs("\n\n" , file);
-      fputs(CONFIG_FILE_DEFAULT_LOG_PATH, file);
-      fclose(file);
-   }
+	verifyConfigDir();
 
-   printf("Archivo de configuración creado.\n");
-      
+	FILE *file = fopen(CONFIG_FILE_PATH, "w");
+
+	if (file == NULL)
+	{
+		printf("No fue posible crear el archivo de configuración.\n Intente con sudo ./ejecutable\n");
+		exit(EXIT_FAILURE);
+	}
+
+	else
+	{
+		fputs(CONFIG_FILE_DEFAULT_PORT, file);
+		fputs("\n\n", file);
+		fputs(CONFIG_FILE_DEFAULT_LOG_PATH, file);
+		fclose(file);
+	}
+
+	printf("Archivo de configuración creado.\n");
 }
 
 /*
  *  Funcion que retorna el puerto especificado en el archivo de configuracion
  *  si no lo encuentra retorna NULL
  */
-int* getPortFromConfigFile() {
+int *getPortFromConfigFile()
+{
 
-   FILE* file;
- 
-   file = fopen(CONFIG_FILE_PATH, "r"); // read mode
+	FILE *file;
 
-   if(file == NULL) {
-      createConfigFile();
-      file = fopen(CONFIG_FILE_PATH, "r"); // read mode
-   }
+	file = fopen(CONFIG_FILE_PATH, "r"); // read mode
 
-   if(file == NULL) {
-      printf("No fue posible leer el archivo de configuración\n");
-      exit(EXIT_FAILURE);
-   }
+	if (file == NULL)
+	{
+		createConfigFile();
+		file = fopen(CONFIG_FILE_PATH, "r"); // read mode
+	}
 
-   int* port = calloc(1, sizeof(int));
+	if (file == NULL)
+	{
+		printf("No fue posible leer el archivo de configuración\n");
+		exit(EXIT_FAILURE);
+	}
 
-   while(!feof(file)) {
-      if(fscanf(file,"PORT=%d", port) == 1) {
-         break;
-      }
-      fgetc(file);
-   }
+	int *port = calloc(1, sizeof(int));
 
-   if((port != NULL) && (*port == '\0')) {
-      printf("No se encontró el puerto en el archivo de configuración\n"); 
-      return NULL;
-   }
+	while (!feof(file))
+	{
+		if (fscanf(file, "PORT=%d", port) == 1)
+		{
+			break;
+		}
+		fgetc(file);
+	}
 
-   fclose(file);
+	if ((port != NULL) && (*port == '\0'))
+	{
+		printf("No se encontró el puerto en el archivo de configuración\n");
+		return NULL;
+	}
 
-   return port;
+	fclose(file);
 
+	return port;
 }
 
 /*
  *  Funcion que retorna la ruta al log file del webserver
  *  si no lo encuentra retorna NULL
  */
-char* getLogPathFromConfigFile() {
-   
-   FILE* file;
+char *getLogPathFromConfigFile()
+{
 
-   file = fopen(CONFIG_FILE_PATH, "r");
+	FILE *file;
 
-   if(file == NULL) {
-      printf("No fue posible leer el archivo de configuración\n");
-      return NULL;
-   }
+	file = fopen(CONFIG_FILE_PATH, "r");
 
-   char* logFilePath = (char*)calloc(256, sizeof(char));
+	if (file == NULL)
+	{
+		printf("No fue posible leer el archivo de configuración\n");
+		return NULL;
+	}
 
-   while(!feof(file)) {
-      if(fscanf(file,"LOGFILE=%s", logFilePath) == 1) {
-         break;
-      }
-      fgetc(file);
-   }
+	char *logFilePath = (char *)calloc(256, sizeof(char));
 
-   if((logFilePath != NULL) && (logFilePath[0] == '\0')) {
-      printf("No se encontró el logfile path en el archivo de configuración\n"); 
-      return NULL;
-   }
+	while (!feof(file))
+	{
+		if (fscanf(file, "LOGFILE=%s", logFilePath) == 1)
+		{
+			break;
+		}
+		fgetc(file);
+	}
 
-   fclose(file);
+	if ((logFilePath != NULL) && (logFilePath[0] == '\0'))
+	{
+		printf("No se encontró el logfile path en el archivo de configuración\n");
+		return NULL;
+	}
 
-   return logFilePath;
+	fclose(file);
 
+	return logFilePath;
 }
 //METODOS DEL ARCHIVO TERMINAN ACA
 
+//METODOS DEL SERVER COMIENZAN ACA
+/**
+ * Receives the socket number, the message body, the HTTP header (ex. HTTP_OK), boolean whether is by chunks, and the bytes read
+ * Sends the message to the socket with HTTP 1.1 protocol. 
+ * */
+void sendResponse(int socket, const char *message, const char *header, int nread, int *exiting)
+{
+	int actuallyWrote;
+	char *response;
+	if (header != NO_HEADER)
+	{
+		response = (char *)malloc(nread + strlen(header));
+		memcpy(response, header, strlen(header));
+		memcpy(response + strlen(header), message, nread);
+		printf("Writing...\n");
+		actuallyWrote = write(socket, response, strlen(header) + nread);
+	}
+	else
+	{
+		actuallyWrote = write(socket, message, nread);
+	}
+	if (actuallyWrote == -1)
+	{
+		perror("Error writing");
+		*exiting = 0;
+	}
+	free(response);
+}
+
+//METODOS DEL SERVER TERMINAN ACA
 
 /* Main function */
 int main(int argc, char *argv[])
@@ -266,93 +326,261 @@ int main(int argc, char *argv[])
 	//daemonize();
 
 	//LEE LOS DATOS DEL ARCHIVO DE CONFIGURACION
-	int* port = getPortFromConfigFile();
-    char* logFilePath = getLogPathFromConfigFile();
+	int *port = getPortFromConfigFile();
+	char *logFilePath = getLogPathFromConfigFile();
 
 	/* This global variable can be changed in function handling signal */
 	running = 1;
 
-
 	/* Try to open log file to this daemon */
-	if (logFilePath != NULL) {
+	if (logFilePath != NULL)
+	{
 		log_stream = fopen(logFilePath, "a+");
-		if (log_stream == NULL) {
+		if (log_stream == NULL)
+		{
 			syslog(LOG_ERR, "Can not open log file: %s, error: %s",
-				logFilePath, strerror(errno));
+				   logFilePath, strerror(errno));
 			log_stream = stdout;
 		}
-	} else {
+	}
+	else
+	{
 		log_stream = stdout;
 	}
 
 	//AQUI COMIENZA EL CODIGO DEL SERVER
 
-	int server_fd, new_socket; long valread;
-    struct sockaddr_in address;
-    int addrlen = sizeof(address);
-    
-    // Only this line has been changed. Everything is same.
-    char *hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-    
-    // Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-    {
-        perror("In socket");
-        exit(EXIT_FAILURE);
-    }
-    
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( *port );
-    
-    memset(address.sin_zero, '\0', sizeof address.sin_zero);
-    
-    
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
-    {
-        perror("In bind");
-        exit(EXIT_FAILURE);
-    }
-    if (listen(server_fd, 10) < 0)
-    {
-        perror("In listen");
-        exit(EXIT_FAILURE);
-    }
-	
-	static int counter = 0;
+	int messageSize = 1000000;
+	char *hexChunk = (char *)malloc(5);
+	sprintf(hexChunk, "%x", messageSize);
+	int exiting = 1;
+	char *httpHeader = HTTP_OK;
+	char *message; //body message
+	int nread;
+	int i;
+
+	struct sockaddr_in socketAddress;
+
+	memset((char *)&socketAddress, '\0', sizeof socketAddress.sin_zero);
+	//fill out the socket address structure
+	socketAddress.sin_family = AF_INET;			//sets up the socket family to AF_INET
+	socketAddress.sin_addr.s_addr = INADDR_ANY; //sets up the address to this machine's IP address
+	socketAddress.sin_port = htons(*port);		//specifies port for clients to connect to this server
+
+	int fileDescriptor, errno;									//socket file descriptor and error number
+	errno = (fileDescriptor = socket(AF_INET, SOCK_STREAM, 0)); //Creates the fileDescriptor with an autoselected protocol
+	if (errno <= -1)
+	{
+		perror("Error while creating file descriptor");
+		exiting = 0;
+	}
+
+	//Fixes the binding issue when the server is interrupted
+	errno = setsockopt(fileDescriptor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+	if (errno == -1)
+	{
+		perror("setsockopt failed");
+		exiting = 0;
+	}
+
+	socklen_t address_len = sizeof socketAddress;								  //kernel space required to copy de socket address
+	errno = bind(fileDescriptor, (struct sockaddr *)&socketAddress, address_len); //System call bind to name the socket
+	if (errno <= -1)
+	{
+		perror("Error while binding the socket");
+		exiting = 0;
+	}
+
+	int backlog = 1000000;					 //number of queued operations allowed
+	errno = listen(fileDescriptor, backlog); //Creates the listener on the socket
+
+	if (errno <= -1)
+	{
+		perror("Error while creating the listener");
+		exiting = 0;
+	}
+
+	if (exiting == 0)
+	{
+
+		printf("Try again later\n");
+		return -1;
+	}
+	int nextSocket;
 
 	/* Never ending loop of server */
-	while (running == 1) {
+	while (running == 1)
+	{
 
 		/* Debug print */
-		
+
 		int ret = fprintf(log_stream, "Debug: %d\n", counter++);
-		if (ret < 0) {
+		if (ret < 0)
+		{
 			syslog(LOG_ERR, "Can not write to log stream: %s, error: %s",
-				(log_stream == stdout) ? "stdout" : logFilePath, strerror(errno));
+				   (log_stream == stdout) ? "stdout" : logFilePath, strerror(errno));
 			break;
 		}
 		ret = fflush(log_stream);
-		if (ret != 0) {
+		if (ret != 0)
+		{
 			syslog(LOG_ERR, "Can not fflush() log stream: %s, error: %s",
-				(log_stream == stdout) ? "stdout" : logFilePath, strerror(errno));
+				   (log_stream == stdout) ? "stdout" : logFilePath, strerror(errno));
 			break;
 		}
 
+		exiting = 1;
+		int *pExiting = &exiting;
+		printf("Waiting...\n");
+		fprintf(log_stream, "Waiting... %d\n", counter++);
+		//Accepts the next item in the queue
+		errno = (nextSocket = accept(fileDescriptor, (struct sockaddr *)&socketAddress, &address_len));
+		if (errno <= -1)
+		{
+			perror("Error while accepting next item on the queue");
+			exiting = -1;
+			break;
+		}
+		else
+		{
 
-		printf("\n+++++++ Waiting for new connection ++++++++\n\n");
-        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
-        {
-            perror("In accept");
-            exit(EXIT_FAILURE);
-        }
-        
-        char buffer[30000] = {0};
-        valread = read( new_socket , buffer, 30000);
-        printf("%s\n",buffer );
-        write(new_socket , hello , strlen(hello));
-        printf("------------------Hello message sent-------------------");
-        close(new_socket);
+			char request[10000] = {0};
+
+			read(nextSocket, request, 10000); //reads the file
+			if (request == "\0" || request == NULL)
+			{
+				continue;
+			}
+			printf("Reading the request...\n");
+			fprintf(log_stream, "Reading the request... %d\n", counter++);
+			/*********************  Getting the request ****************/
+			const char *begin = "GET /";
+			const char *end = " HTTP";
+			char *requestString = NULL;
+			char *start, *finish;
+			char *requestBody = NULL;
+
+			//generates the Get request string
+			if (start = strstr(request, begin))
+			{
+				start += strlen(begin);
+				if (finish = strstr(start, end))
+				{
+					requestString = (char *)malloc(finish - start + 1);
+					memcpy(requestString, start, finish - start);
+					requestString[finish - start] = '\0';
+				}
+			}
+
+			if (requestString == NULL || requestString == "\0")
+			{
+				perror("Error while reading request (2)");
+				printf("Bad request");
+				continue;
+			}
+			else
+			{
+
+				requestBody = (char *)malloc(sizeof(requestString) * strlen(requestString) + strlen(PATH) * sizeof(PATH));
+				sprintf(requestBody, "%s%s", PATH, requestString);
+			}
+
+			printf("Reading the file %s\n", requestBody);
+
+			//*****check if file can be found****//
+
+			printf("Checking the file integrity");
+			if (access(requestBody, R_OK) == -1)
+			{
+				printf("... File is not ok\n");
+				perror("File does not exists or permissions are not granted");
+				httpHeader = HTTP_NOT_FOUND;
+			}
+			else
+			{
+				printf("... File is ok\n");
+
+				FILE *f = fopen(requestBody, "rb"); //open the file in binary mode
+				fseek(f, 0, SEEK_END);
+
+				printf("Checking file size...");
+				int fsize = ftell(f); //binary file size
+				fseek(f, 0, 0);
+				counter += fsize;
+
+				printf(" %d\n", fsize);
+				/* The content can be sent in 1 piece*/
+				if (messageSize > fsize)
+				{
+					message = (char *)malloc(fsize);
+					nread = fread(message, 1, sizeof(message) * fsize, f);
+					printf("Number read: %d\n", nread);
+					/*Sets up the header*/
+
+					httpHeader = HTTP_OK;
+					sendResponse(nextSocket, message, httpHeader, nread, pExiting);
+					free(requestBody);
+					free(message);
+				}
+				else
+				{
+					/**Chunked content */
+					i = 1;
+					httpHeader = HTTP_CHUNK;
+					while (i * messageSize < fsize && exiting != 0)
+					{
+
+						long int hexLen = 5 * sizeof(hexChunk);
+						int bodyLen = messageSize;
+						long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
+						message = (char *)malloc(totalSize);
+						memcpy(message, hexChunk, hexLen); //the hex
+						memcpy(message + hexLen, "\r\n", 2);
+						nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
+						memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
+						i++;
+						sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
+						httpHeader = NO_HEADER;
+						free(message);
+					}
+					if (exiting == 1)
+					{
+						httpHeader = NO_HEADER;
+						int bodyLen = fsize - (i - 1) * messageSize;
+						sprintf(hexChunk, "%x", bodyLen);
+						long int hexLen = 5 * sizeof(hexChunk);
+						long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
+						message = (char *)malloc(totalSize);
+						memcpy(message, hexChunk, hexLen); //the hex
+						memcpy(message + hexLen, "\r\n", 2);
+						nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
+						memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
+						sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
+
+						free(message);
+						if (exiting == 1)
+						{
+							//finish the chunking
+							char *endMessage = "0\r\n\r\n";
+							write(nextSocket, endMessage, 6);
+						}
+						else
+						{
+							perror("Error last request");
+							close(nextSocket);
+						}
+					}
+					else
+					{
+						perror("Error second to last request");
+						close(nextSocket);
+					}
+
+					free(requestBody);
+				}
+			}
+			close(nextSocket);
+		}
 
 		/* Real server should use select() or poll() for waiting at
 		 * asynchronous event. Note: sleep() is interrupted, when

@@ -1,6 +1,6 @@
 For the installation of the  daemon WebServer you just need to run the next command:
 
-    bash ./scriptDeArranque.sh 
+    sudo bash ./scriptDeArranque.sh 
 
     NOTE: you will the to go to the folder where you have downloaded the daemon.
 
