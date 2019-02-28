@@ -163,14 +163,14 @@ int main()
             if (access(requestBody, R_OK) == -1)
             {
                 printf("... File is not ok\n");
-                perror("File does not exists");
+                perror("File does not exists or permissions are not granted");
                 httpHeader = HTTP_NOT_FOUND;
             }
             else
             {
                 printf("... File is ok\n");
 
-                FILE *f = fopen(requestBody, "rb"); //open the file in binary mode
+                FILE *f = fopen("/home/criss/plan.txt"/*"requestBody"*/, "rb"); //open the file in binary mode
                 fseek(f, 0, SEEK_END);
 
                 printf("Checking file size...");
