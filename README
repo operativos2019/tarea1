@@ -7,3 +7,5 @@ For the installation of the  daemon WebServer you just need to run the next comm
 For the uninstallation do the same but with this line:
 
     sudo bash ./scriptDeDesinstalacion.sh
+
+    NOTE: MUST be sudo

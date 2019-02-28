@@ -1,11 +1,10 @@
 [Unit]
-Description=Example of simple daemon program
+Description=WebServer 
 
 [Service]
 Type=simple
 ExecStart=/usr/bin/daemon \
-	--conf_file /etc/webserver/config.conf \
-	--log_file /var/log/webserver.log
+
 User=root
 ExecReload=/bin/kill -HUP $MAINPID
 

@@ -1,11 +1,11 @@
-systemctl stop simple-daemon
-systemctl disable simple-daemon
+systemctl stop WebServer.service
+systemctl disable WebServer.service
 rm -rf build
-rm /etc/systemd/system/simple-daemon.service
+rm /etc/systemd/system/WebServer.service
 rm /usr/bin/daemon
 systemctl daemon-reload
 systemctl reset-failed
-systemctl status simple-daemon
+systemctl status WebServer.service
 
 #/usr/lib/systemd/system/simple-daemon
 

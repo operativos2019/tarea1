@@ -1,9 +1,5 @@
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=/usr ../
-make
-sudo make install
+sudo make
 
-#systemctl enable simple-daemon
-systemctl start simple-daemon
-systemctl status simple-daemon
+systemctl enable WebServer.service
+systemctl start WebServer.service
+systemctl status WebServer.service
