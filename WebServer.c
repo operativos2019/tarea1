@@ -15,6 +15,8 @@
 #define HTTP_UNAVAILABLE "HTTP/1.1 503 SERVICE UNAVAILABLE\n\n"
 #define NO_HEADER "NO_HEADER\n\n"
 
+#define PATH "/home/criss/"
+
 /**
  * Receives the socket number, the message body, the HTTP header (ex. HTTP_OK), boolean whether is by chunks, and the bytes read
  * Sends the message to the socket with HTTP 1.1 protocol. 
@@ -133,8 +135,9 @@ int main()
             /*********************  Getting the request ****************/
             const char *begin = "GET /";
             const char *end = " HTTP";
-            char *requestBody = NULL;
+            char *requestString = NULL;
             char *start, *finish;
+            char *requestBody = NULL;
 
             //generates the Get request string
             if (start = strstr(request, begin))
@@ -142,22 +145,26 @@ int main()
                 start += strlen(begin);
                 if (finish = strstr(start, end))
                 {
-                    requestBody = (char *)malloc(finish - start + 1);
-                    memcpy(requestBody, start, finish - start);
-                    requestBody[finish - start] = '\0';
+                    requestString = (char *)malloc(finish - start + 1);
+                    memcpy(requestString, start, finish - start);
+                    requestString[finish - start] = '\0';
                 }
             }
 
-            if (requestBody == NULL || requestBody == "\0")
+            if (requestString == NULL || requestString == "\0")
             {
                 perror("Error while reading request (2)");
                 printf("Bad request");
                 continue;
+            }else{
+            
+                requestBody = (char *) malloc( sizeof(requestString)* strlen(requestString) + strlen(PATH)*sizeof(PATH));
+                sprintf(requestBody, "%s%s", PATH, requestString);
             }
-
+            
             printf("Reading the file %s\n", requestBody);
 
-            //*****check if file can be found****
+            //*****check if file can be found****//
 
             printf("Checking the file integrity");
             if (access(requestBody, R_OK) == -1)
@@ -170,7 +177,7 @@ int main()
             {
                 printf("... File is ok\n");
 
-                FILE *f = fopen("/home/criss/plan.txt"/*"requestBody"*/, "rb"); //open the file in binary mode
+                FILE *f = fopen(requestBody, "rb"); //open the file in binary mode
                 fseek(f, 0, SEEK_END);
 
                 printf("Checking file size...");
