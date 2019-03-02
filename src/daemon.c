@@ -296,10 +296,11 @@ void sendResponse(int socket, const char *message, const char *header, int nread
 	char *response;
 	if (header != NO_HEADER)
 	{
+
 		response = (char *)malloc(nread + strlen(header));
 		memcpy(response, header, strlen(header));
 		memcpy(response + strlen(header), message, nread);
-		printf("Writing...\n");
+		perror(response);
 		actuallyWrote = write(socket, response, strlen(header) + nread);
 		free(response);
 	}
@@ -312,9 +313,7 @@ void sendResponse(int socket, const char *message, const char *header, int nread
 		perror("Error writing");
 		*exiting = 0;
 	}
-	
 }
-
 //METODOS DEL SERVER TERMINAN ACA
 
 /* Main function */
@@ -351,7 +350,7 @@ int main(int argc, char *argv[])
 
 	//AQUI COMIENZA EL CODIGO DEL SERVER
 
-	int messageSize = 1000000;
+	int messageSize = 100000000;
 	char *hexChunk = (char *)malloc(5);
 	sprintf(hexChunk, "%x", messageSize);
 	int exiting = 1;
@@ -473,12 +472,12 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			 if (requestString == NULL || requestString == "\0")
-            {
-                perror("Error while reading request (2)");
-                httpHeader = HTTP_BAD_REQUEST;
-                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
-}
+			if (requestString == NULL || requestString == "\0")
+			{
+				perror("Error while reading request (2)");
+				httpHeader = HTTP_BAD_REQUEST;
+				sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+			}
 			else
 			{
 
@@ -492,12 +491,12 @@ int main(int argc, char *argv[])
 
 			printf("Checking the file integrity");
 			if (access(requestBody, R_OK) == -1)
-            {
-                printf("... File is not ok\n");
-                perror("File does not exists or permissions are not granted");
-                httpHeader = HTTP_NOT_FOUND;
-                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
-}
+			{
+				printf("... File is not ok\n");
+				perror("File does not exists or permissions are not granted");
+				httpHeader = HTTP_NOT_FOUND;
+				sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+			}
 			else
 			{
 				printf("... File is ok\n");
@@ -512,76 +511,76 @@ int main(int argc, char *argv[])
 
 				printf(" %d\n", fsize);
 				/* The content can be sent in 1 piece*/
-				if (messageSize > fsize)
-				{
-					message = (char *)malloc(fsize);
-					nread = fread(message, 1, sizeof(message) * fsize, f);
-					printf("Number read: %d\n", nread);
-					/*Sets up the header*/
+				 if (messageSize > fsize)
+                {
+                    message = (char *)malloc(fsize);
+                    nread = fread(message, 1, sizeof(message) * fsize, f);
+                    printf("Number read: %d\n", nread);
+                    /*Sets up the header*/
 
-					httpHeader = HTTP_OK;
-					sendResponse(nextSocket, message, httpHeader, nread, pExiting);
-					free(requestBody);
-					free(message);
-				}
-				else
-				{
-					/**Chunked content */
-					i = 1;
-					httpHeader = HTTP_CHUNK;
-					while (i * messageSize < fsize && exiting != 0)
-					{
+                    httpHeader = HTTP_OK;
+                    sendResponse(nextSocket, message, httpHeader, nread, pExiting);
+                    free(requestBody);
+                    free(message);
+                }
+                else
+                {
+                    /**Chunked content */
+                    i = 1;
+                    httpHeader = HTTP_CHUNK;
+                    while (i * messageSize < fsize && exiting == 1)
+                    {
+                    
+                        long int hexLen = 5 * sizeof(hexChunk);
+                        int bodyLen = messageSize;
+						
+                        long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
+                        message = (char *)malloc(totalSize);
+                        memcpy(message, hexChunk, hexLen); //the hex						
+                        memcpy(message + hexLen, "\r\n", 2);
+                        nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
+                        memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
+                        i++;
+						char * sizet = (char*) malloc (5);
+                        sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
+                        httpHeader = NO_HEADER;
+                        free(message);
+                    }
+                    if (exiting == 1){
+                        httpHeader = NO_HEADER;
+                        int bodyLen = fsize - (i - 1) * messageSize;
+                        sprintf(hexChunk, "%x", bodyLen);
+                        long int hexLen = 5 * sizeof(hexChunk);
+                        long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
+                        message = (char *)malloc(totalSize);
+                        memcpy(message, hexChunk, hexLen); //the hex
+                        memcpy(message + hexLen, "\r\n", 2);
+                        nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
+                        memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
+                        sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
+                        
 
-						long int hexLen = 5 * sizeof(hexChunk);
-						int bodyLen = messageSize;
-						long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
-						message = (char *)malloc(totalSize);
-						memcpy(message, hexChunk, hexLen); //the hex
-						memcpy(message + hexLen, "\r\n", 2);
-						nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
-						memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
-						i++;
-						sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
-						httpHeader = NO_HEADER;
-						free(message);
-					}
-					if (exiting == 1)
-					{
-						httpHeader = NO_HEADER;
-						int bodyLen = fsize - (i - 1) * messageSize;
-						sprintf(hexChunk, "%x", bodyLen);
-						long int hexLen = 5 * sizeof(hexChunk);
-						long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
-						message = (char *)malloc(totalSize);
-						memcpy(message, hexChunk, hexLen); //the hex
-						memcpy(message + hexLen, "\r\n", 2);
-						nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
-						memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
-						sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
+                        free(message);
+                        if (exiting == 1){                        
+                            //finish the chunking
+                            char *endMessage = "0\r\n\r\n";
+                            write(nextSocket, endMessage, 6);
+                        }else{
+                            perror("Error last request");
+                            close(nextSocket);
+                        }
+                    }else
+                    {
+                        perror("Error second to last request");
+                        close(nextSocket);
+                    }
+                    
 
-						free(message);
-						if (exiting == 1)
-						{
-							//finish the chunking
-							char *endMessage = "0\r\n\r\n";
-							write(nextSocket, endMessage, 6);
-						}
-						else
-						{
-							perror("Error last request");
-							close(nextSocket);
-						}
-					}
-					else
-					{
-						perror("Error second to last request");
-						close(nextSocket);
-					}
-
-					free(requestBody);
-				}
-			}
-			close(nextSocket);
+                    free(requestBody);
+                    
+                }
+            }
+            close(nextSocket);
 		}
 
 		/* Real server should use select() or poll() for waiting at
