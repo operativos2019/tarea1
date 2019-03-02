@@ -58,15 +58,15 @@ struct stat s;
 
 #define HTTP_CHUNK "HTTP/1.1 200 OK\nTransfer-Encoding: chunked\n\n"
 #define HTTP_OK "HTTP/1.1 200 OK\n\n"
-#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\n\n"
+#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\n\nError 400:\nBad request\n"
 #define HTTP_FORBIDDEN "HTTP/1.1 403 FORBIDDEN\n\n"
-#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\n\n"
+#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\n\nError 404:\nFile not found\n"
 #define HTTP_TOO_MANY "HTTP/1.1 429 TOO MANY REQUESTS\n\n"
 #define HTTP_INTERNAL "HTTP/1.1 500 INTERNAL SERVER ERROR\n\n"
 #define HTTP_UNAVAILABLE "HTTP/1.1 503 SERVICE UNAVAILABLE\n\n"
 #define NO_HEADER "NO_HEADER\n\n"
 
-#define PATH "/home/ger534/Desktop/"
+#define PATH "/home/criss/"
 
 /**
  * \brief This function will daemonize this app
@@ -301,6 +301,7 @@ void sendResponse(int socket, const char *message, const char *header, int nread
 		memcpy(response + strlen(header), message, nread);
 		printf("Writing...\n");
 		actuallyWrote = write(socket, response, strlen(header) + nread);
+		free(response);
 	}
 	else
 	{
@@ -311,7 +312,7 @@ void sendResponse(int socket, const char *message, const char *header, int nread
 		perror("Error writing");
 		*exiting = 0;
 	}
-	free(response);
+	
 }
 
 //METODOS DEL SERVER TERMINAN ACA
@@ -472,12 +473,12 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			if (requestString == NULL || requestString == "\0")
-			{
-				perror("Error while reading request (2)");
-				printf("Bad request");
-				continue;
-			}
+			 if (requestString == NULL || requestString == "\0")
+            {
+                perror("Error while reading request (2)");
+                httpHeader = HTTP_BAD_REQUEST;
+                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+}
 			else
 			{
 
@@ -491,11 +492,12 @@ int main(int argc, char *argv[])
 
 			printf("Checking the file integrity");
 			if (access(requestBody, R_OK) == -1)
-			{
-				printf("... File is not ok\n");
-				perror("File does not exists or permissions are not granted");
-				httpHeader = HTTP_NOT_FOUND;
-			}
+            {
+                printf("... File is not ok\n");
+                perror("File does not exists or permissions are not granted");
+                httpHeader = HTTP_NOT_FOUND;
+                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+}
 			else
 			{
 				printf("... File is ok\n");
