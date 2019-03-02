@@ -7,10 +7,16 @@
 
 #define CONFIG_FILE_DIR "/etc/webserver"
 #define CONFIG_FILE_PATH "/etc/webserver/config.conf"
+
 #define DEFAULT_PORT 8001
 #define CONFIG_FILE_DEFAULT_PORT "PORT=8001"
 #define DEFAULT_LOG_PATH "/var/log/webserver"
 #define CONFIG_FILE_DEFAULT_LOG_PATH "LOGFILE=/var/log/webserver"  
+#define DEFAULT_SERVER_DIR_PATH "/home"
+#define CONFIG_FILE_DEFAULT_DIR_PATH "SERVERDIRPATH=/home"  
+
+
+
 
 struct stat s; 
 
@@ -48,6 +54,8 @@ void createConfigFile() {
       fputs(CONFIG_FILE_DEFAULT_PORT , file);
       fputs("\n\n" , file);
       fputs(CONFIG_FILE_DEFAULT_LOG_PATH, file);
+      fputs("\n\n" , file);
+      fputs(CONFIG_FILE_DEFAULT_DIR_PATH, file);
       fclose(file);
    }
 
@@ -132,10 +140,47 @@ char* getLogPathFromConfigFile() {
 
 }
 
+/*
+ *  Funcion que retorna la ruta al log file del webserver
+ *  si no lo encuentra el path por defecto
+ */
+char* getServerDirPathFromConfigFile() {
+   
+   FILE* file;
+   char* serverDirPath = (char*)calloc(256, sizeof(char));
+
+   file = fopen(CONFIG_FILE_PATH, "r");
+
+   if(file == NULL) {
+      printf("No fue posible leer el archivo de configuración\nSe utilizó el serverDirPath por default\n");
+      serverDirPath = DEFAULT_SERVER_DIR_PATH;
+      return serverDirPath;
+   }
+
+   while(!feof(file)) {
+      if(fscanf(file,"SERVERDIRPATH=%s", serverDirPath) == 1) {
+         break;
+      }
+      fgetc(file);
+   }
+
+   if((serverDirPath != NULL) && (serverDirPath[0] == '\0')) {
+      printf("No se encontró el serverDirPath path en el archivo de configuración\nSe utilizó el path por default\n"); 
+      serverDirPath = DEFAULT_SERVER_DIR_PATH;
+      return serverDirPath;
+   }
+
+   fclose(file);
+
+   return serverDirPath;
+
+}
+
 int main() {
 
    int* port = getPortFromConfigFile();
    char* logFilePath = getLogPathFromConfigFile();
+   char* serverDirPath = getServerDirPathFromConfigFile();
 
    if(port != NULL) {
       printf("Puerto = %d\n",*port);   
@@ -143,6 +188,10 @@ int main() {
 
    if(logFilePath != NULL) {
       printf("LogFile path = %s\n",logFilePath);   
+   }
+
+      if(serverDirPath != NULL) {
+      printf("serverDirPath path = %s\n",serverDirPath);   
    }
 
    return 0;
