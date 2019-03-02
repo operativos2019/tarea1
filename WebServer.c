@@ -7,9 +7,9 @@
 
 #define HTTP_CHUNK "HTTP/1.1 200 OK\nTransfer-Encoding: chunked\n\n"
 #define HTTP_OK "HTTP/1.1 200 OK\n\n"
-#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\n\n"
+#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\n\nError 400:\nBad request\n"
 #define HTTP_FORBIDDEN "HTTP/1.1 403 FORBIDDEN\n\n"
-#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\n\n"
+#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\n\nError 404:\nFile not found\n"
 #define HTTP_TOO_MANY "HTTP/1.1 429 TOO MANY REQUESTS\n\n"
 #define HTTP_INTERNAL "HTTP/1.1 500 INTERNAL SERVER ERROR\n\n"
 #define HTTP_UNAVAILABLE "HTTP/1.1 503 SERVICE UNAVAILABLE\n\n"
@@ -20,6 +20,8 @@
 /**
  * Receives the socket number, the message body, the HTTP header (ex. HTTP_OK), boolean whether is by chunks, and the bytes read
  * Sends the message to the socket with HTTP 1.1 protocol. 
+ * 
+ * Checks if the correct number of bytes were written and if they are not sends the signal to end the process
  * */
 void sendResponse(int socket, const char *message, const char *header, int nread, int * exiting)
 {   int actuallyWrote;
@@ -31,6 +33,7 @@ void sendResponse(int socket, const char *message, const char *header, int nread
         memcpy(response + strlen(header), message, nread);
         printf("Writing...\n");
         actuallyWrote = write(socket, response, strlen(header) + nread);
+        free(response);
     }
     else
     {
@@ -40,7 +43,7 @@ void sendResponse(int socket, const char *message, const char *header, int nread
         perror("Error writing");
         *exiting = 0;
     }
-    free(response);
+    
     
 }
 
@@ -151,11 +154,12 @@ int main()
                 }
             }
 
+            //Checks if the request is not well formated
             if (requestString == NULL || requestString == "\0")
             {
                 perror("Error while reading request (2)");
-                printf("Bad request");
-                continue;
+                httpHeader = HTTP_BAD_REQUEST;
+                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
             }else{
             
                 requestBody = (char *) malloc( sizeof(requestString)* strlen(requestString) + strlen(PATH)*sizeof(PATH));
@@ -164,7 +168,7 @@ int main()
             
             printf("Reading the file %s\n", requestBody);
 
-            //*****check if file can be found****//
+            //checks if the file can be found
 
             printf("Checking the file integrity");
             if (access(requestBody, R_OK) == -1)
@@ -172,6 +176,7 @@ int main()
                 printf("... File is not ok\n");
                 perror("File does not exists or permissions are not granted");
                 httpHeader = HTTP_NOT_FOUND;
+                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
             }
             else
             {
