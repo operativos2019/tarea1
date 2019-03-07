@@ -56,17 +56,15 @@ static FILE *log_stream;
 
 struct stat s;
 
-#define HTTP_CHUNK "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\n"
-#define HTTP_OK "HTTP/1.1 200 OK\n\n"
-#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\n\nError 400:\nBad request\n"
-#define HTTP_FORBIDDEN "HTTP/1.1 403 FORBIDDEN\n\n"
-#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\n\nError 404:\nFile not found\n"
-#define HTTP_TOO_MANY "HTTP/1.1 429 TOO MANY REQUESTS\n\n"
-#define HTTP_INTERNAL "HTTP/1.1 500 INTERNAL SERVER ERROR\n\n"
-#define HTTP_UNAVAILABLE "HTTP/1.1 503 SERVICE UNAVAILABLE\n\n"
+//HTTP headers
+#define HTTP_CHUNK "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n"
+#define HTTP_OK "HTTP/1.1 200 OK\r\n\r\n"
+#define HTTP_BAD_REQUEST "HTTP/1.1 400 BAD REQUEST\r\n\r\nError 400:\nBad request\n"
+#define HTTP_NOT_FOUND "HTTP/1.1 404 NOT FOUND\r\n\r\nError 404:\nFile not found\n"
+#define HTTP_INTERNAL "HTTP/1.1 500\r\nINTERNAL SERVER ERROR\r\n\r\n"
 #define NO_HEADER "NO_HEADER\n\n"
 
-#define PATH "/home/criss/"
+#define PATH "home/criss/"
 
 /**
  * \brief This function will daemonize this app
@@ -333,14 +331,14 @@ void sendResponse(int socket, const char *message, const char *header, int nread
 //METODOS DEL SERVER TERMINAN ACA
 
 /* Main function */
-int main(int argc, char *argv[])
+int main(int argc,char **argv,char** envp)
 {
     int counter = 0;
     char *logFilePath;
 
     logFilePath = NULL;
-    int port = 8001;
-    int running = 1;
+    int port = 8001 ;
+    running = 1;
 
     //REVISAR FUNCION glibc
     /* It is also possible to use glibc function deamon()
@@ -348,8 +346,6 @@ int main(int argc, char *argv[])
     //daemonize();
 
     //LEE LOS DATOS DEL ARCHIVO DE CONFIGURACION
-    //*port2 = getPortFromConfigFile();
-    //char *logFilePath = getLogPathFromConfigFile();
 
     /* This global variable can be changed in function handling signal */
 
@@ -368,6 +364,7 @@ int main(int argc, char *argv[])
 
     memset((char *)&socketAddress, '\0', sizeof socketAddress.sin_zero);
     //fill out the socket address structure
+	port = *(getPortFromConfigFile());
     socketAddress.sin_family = AF_INET;         //sets up the socket family to AF_INET
     socketAddress.sin_addr.s_addr = INADDR_ANY; //sets up the address to this machine's IP address
     socketAddress.sin_port = htons(port);       //specifies port for clients to connect to this server
@@ -585,12 +582,19 @@ int main(int argc, char *argv[])
                                 {
 
                                     perror("Error last request");
+									httpHeader = HTTP_INTERNAL;
+				                    sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+
                                 }
                             }
                             else
                             {
 
                                 perror("Error previous chunks");
+								httpHeader = HTTP_INTERNAL;
+			                    sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+
+
                             }
                             fclose(f);
 
@@ -606,7 +610,7 @@ int main(int argc, char *argv[])
         /* Real server should use select() or poll() for waiting at
 		 * asynchronous event. Note: sleep() is interrupted, when
 		 * signal is received. */
-        //sleep(delay);
+        sleep(delay);
     }
 
     return EXIT_SUCCESS;
