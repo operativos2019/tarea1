@@ -337,7 +337,7 @@ int main(int argc,char **argv,char** envp)
     char *logFilePath;
 
     logFilePath = NULL;
-    int port = 8001 ;
+    int port;
     running = 1;
 
     //REVISAR FUNCION glibc
