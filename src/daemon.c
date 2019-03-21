@@ -71,86 +71,86 @@ struct stat s;
  */
 static void daemonize()
 {
-	pid_t pid = 0;
-	int fd;
+    pid_t pid = 0;
+    int fd;
 
-	/* Fork off the parent process */
-	pid = fork();
+    /* Fork off the parent process */
+    pid = fork();
 
-	/* An error occurred */
-	if (pid < 0)
-	{
-		exit(EXIT_FAILURE);
-	}
+    /* An error occurred */
+    if (pid < 0)
+    {
+        exit(EXIT_FAILURE);
+    }
 
-	/* Success: Let the parent terminate */
-	if (pid > 0)
-	{
-		exit(EXIT_SUCCESS);
-	}
+    /* Success: Let the parent terminate */
+    if (pid > 0)
+    {
+        exit(EXIT_SUCCESS);
+    }
 
-	/* On success: The child process becomes session leader */
-	if (setsid() < 0)
-	{
-		exit(EXIT_FAILURE);
-	}
+    /* On success: The child process becomes session leader */
+    if (setsid() < 0)
+    {
+        exit(EXIT_FAILURE);
+    }
 
-	/* Ignore signal sent from child to parent process */
-	signal(SIGCHLD, SIG_IGN);
+    /* Ignore signal sent from child to parent process */
+    signal(SIGCHLD, SIG_IGN);
 
-	/* Fork off for the second time*/
-	pid = fork();
+    /* Fork off for the second time*/
+    pid = fork();
 
-	/* An error occurred */
-	if (pid < 0)
-	{
-		exit(EXIT_FAILURE);
-	}
+    /* An error occurred */
+    if (pid < 0)
+    {
+        exit(EXIT_FAILURE);
+    }
 
-	/* Success: Let the parent terminate */
-	if (pid > 0)
-	{
-		exit(EXIT_SUCCESS);
-	}
+    /* Success: Let the parent terminate */
+    if (pid > 0)
+    {
+        exit(EXIT_SUCCESS);
+    }
 
-	/* Set new file permissions */
-	umask(0);
+    /* Set new file permissions */
+    umask(0);
 
-	/* Change the working directory to the root directory */
-	/* or another appropriated directory */
-	chdir("/");
+    /* Change the working directory to the root directory */
+    /* or another appropriated directory */
+    chdir("/");
 
-	/* Close all open file descriptors */
-	for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--)
-	{
-		close(fd);
-	}
+    /* Close all open file descriptors */
+    for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--)
+    {
+        close(fd);
+    }
 
-	/* Reopen stdin (fd = 0), stdout (fd = 1), stderr (fd = 2) */
-	stdin = fopen("/dev/null", "r");
-	stdout = fopen("/dev/null", "w+");
-	stderr = fopen("/dev/null", "w+");
+    /* Reopen stdin (fd = 0), stdout (fd = 1), stderr (fd = 2) */
+    stdin = fopen("/dev/null", "r");
+    stdout = fopen("/dev/null", "w+");
+    stderr = fopen("/dev/null", "w+");
 
-	/* Try to write PID of daemon to lockfile */
-	if (pid_file_name != NULL)
-	{
-		char str[256];
-		pid_fd = open(pid_file_name, O_RDWR | O_CREAT, 0640);
-		if (pid_fd < 0)
-		{
-			/* Can't open lockfile */
-			exit(EXIT_FAILURE);
-		}
-		if (lockf(pid_fd, F_TLOCK, 0) < 0)
-		{
-			/* Can't lock file */
-			exit(EXIT_FAILURE);
-		}
-		/* Get current PID */
-		sprintf(str, "%d\n", getpid());
-		/* Write PID to lockfile */
-		write(pid_fd, str, strlen(str));
-	}
+    /* Try to write PID of daemon to lockfile */
+    if (pid_file_name != NULL)
+    {
+        char str[256];
+        pid_fd = open(pid_file_name, O_RDWR | O_CREAT, 0640);
+        if (pid_fd < 0)
+        {
+            /* Can't open lockfile */
+            exit(EXIT_FAILURE);
+        }
+        if (lockf(pid_fd, F_TLOCK, 0) < 0)
+        {
+            /* Can't lock file */
+            exit(EXIT_FAILURE);
+        }
+        /* Get current PID */
+        sprintf(str, "%d\n", getpid());
+        /* Write PID to lockfile */
+        write(pid_fd, str, strlen(str));
+    }
 }
 
 //METODOS DEL ARCHIVO COMIENZAN ACA
@@ -161,13 +161,13 @@ static void daemonize()
 void verifyConfigDir()
 {
 
-	int err = stat(CONFIG_FILE_DIR, &s);
+    int err = stat(CONFIG_FILE_DIR, &s);
 
-	if (-1 == err)
-	{
-		mkdir(CONFIG_FILE_DIR, 0700);
-		printf("Directorio de configuracion creado.\n");
-	}
+    if (-1 == err)
+    {
+        mkdir(CONFIG_FILE_DIR, 0700);
+        printf("Directorio de configuracion creado.\n");
+    }
 }
 
 /*
@@ -177,25 +177,25 @@ void verifyConfigDir()
 void createConfigFile()
 {
 
-	verifyConfigDir();
+    verifyConfigDir();
 
-	FILE *file = fopen(CONFIG_FILE_PATH, "w");
+    FILE *file = fopen(CONFIG_FILE_PATH, "w");
 
-	if (file == NULL)
-	{
-		printf("No fue posible crear el archivo de configuración.\n Intente con sudo ./ejecutable\n");
-		exit(EXIT_FAILURE);
-	}
+    if (file == NULL)
+    {
+        printf("No fue posible crear el archivo de configuración.\n Intente con sudo ./ejecutable\n");
+        exit(EXIT_FAILURE);
+    }
 
-	else
-	{
-		fputs(CONFIG_FILE_DEFAULT_PORT, file);
-		fputs("\n\n", file);
-		fputs(CONFIG_FILE_DEFAULT_LOG_PATH, file);
-		fclose(file);
-	}
+    else
+    {
+        fputs(CONFIG_FILE_DEFAULT_PORT, file);
+        fputs("\n\n", file);
+        fputs(CONFIG_FILE_DEFAULT_LOG_PATH, file);
+        fclose(file);
+    }
 
-	printf("Archivo de configuración creado.\n");
+    printf("Archivo de configuración creado.\n");
 }
 
 /*
@@ -205,42 +205,42 @@ void createConfigFile()
 int *getPortFromConfigFile()
 {
 
-	FILE *file;
+    FILE *file;
 
-	file = fopen(CONFIG_FILE_PATH, "r"); // read mode
+    file = fopen(CONFIG_FILE_PATH, "r"); // read mode
 
-	if (file == NULL)
-	{
-		createConfigFile();
-		file = fopen(CONFIG_FILE_PATH, "r"); // read mode
-	}
+    if (file == NULL)
+    {
+        createConfigFile();
+        file = fopen(CONFIG_FILE_PATH, "r"); // read mode
+    }
 
-	if (file == NULL)
-	{
-		printf("No fue posible leer el archivo de configuración\n");
-		exit(EXIT_FAILURE);
-	}
+    if (file == NULL)
+    {
+        printf("No fue posible leer el archivo de configuración\n");
+        exit(EXIT_FAILURE);
+    }
 
-	int *port = calloc(1, sizeof(int));
+    int *port = calloc(1, sizeof(int));
 
-	while (!feof(file))
-	{
-		if (fscanf(file, "PORT=%d", port) == 1)
-		{
-			break;
-		}
-		fgetc(file);
-	}
+    while (!feof(file))
+    {
+        if (fscanf(file, "PORT=%d", port) == 1)
+        {
+            break;
+        }
+        fgetc(file);
+    }
 
-	if ((port != NULL) && (*port == '\0'))
-	{
-		printf("No se encontró el puerto en el archivo de configuración\n");
-		return NULL;
-	}
+    if ((port != NULL) && (*port == '\0'))
+    {
+        printf("No se encontró el puerto en el archivo de configuración\n");
+        return NULL;
+    }
 
-	fclose(file);
+    fclose(file);
 
-	return port;
+    return port;
 }
 
 /*
@@ -250,36 +250,36 @@ int *getPortFromConfigFile()
 char *getLogPathFromConfigFile()
 {
 
-	FILE *file;
+    FILE *file;
 
-	file = fopen(CONFIG_FILE_PATH, "r");
+    file = fopen(CONFIG_FILE_PATH, "r");
 
-	if (file == NULL)
-	{
-		printf("No fue posible leer el archivo de configuración\n");
-		return NULL;
-	}
+    if (file == NULL)
+    {
+        printf("No fue posible leer el archivo de configuración\n");
+        return NULL;
+    }
 
-	char *logFilePath = (char *)calloc(256, sizeof(char));
+    char *logFilePath = (char *)calloc(256, sizeof(char));
 
-	while (!feof(file))
-	{
-		if (fscanf(file, "LOGFILE=%s", logFilePath) == 1)
-		{
-			break;
-		}
-		fgetc(file);
-	}
+    while (!feof(file))
+    {
+        if (fscanf(file, "LOGFILE=%s", logFilePath) == 1)
+        {
+            break;
+        }
+        fgetc(file);
+    }
 
-	if ((logFilePath != NULL) && (logFilePath[0] == '\0'))
-	{
-		printf("No se encontró el logfile path en el archivo de configuración\n");
-		return NULL;
-	}
+    if ((logFilePath != NULL) && (logFilePath[0] == '\0'))
+    {
+        printf("No se encontró el logfile path en el archivo de configuración\n");
+        return NULL;
+    }
 
-	fclose(file);
+    fclose(file);
 
-	return logFilePath;
+    return logFilePath;
 }
 //METODOS DEL ARCHIVO TERMINAN ACA
 
@@ -297,14 +297,13 @@ void printError(const char *error, int size)
     printf("\n");
 }
 
-
 /**
  * Receives the socket number, the message body, the HTTP header (ex. HTTP_OK), boolean whether is by chunks, and the bytes read
  * Sends the message to the socket with HTTP 1.1 protocol. 
  * 
  * Checks if the correct number of bytes were written and if they are not sends the signal to end the process
  * */
-void sendResponse(int socket, const char *message, const char *header, int nread, int *exiting)
+int sendResponse(int socket, const char *message, const char *header, int nread)
 {
     //printError(message, nread);
     int actuallyWrote;
@@ -324,14 +323,24 @@ void sendResponse(int socket, const char *message, const char *header, int nread
     }
     if (actuallyWrote == -1)
     {
-        perror("Error writing");
-        *exiting = 0;
+        fprintf(log_stream, "nread %d\n", nread);
+        fprintf(log_stream, "MESSAGE:\n");
+        for (int i = 0; i < nread; i++)
+        {
+            fprintf(log_stream, "%c", message[i]);
+        }
+        return 0;
+        perror("error writing");
+    }
+    else
+    {
+        return 1;
     }
 }
 //METODOS DEL SERVER TERMINAN ACA
 
 /* Main function */
-int main(int argc,char **argv,char** envp)
+int main(int argc, char **argv, char **envp)
 {
     int counter = 0;
     char *logFilePath;
@@ -340,18 +349,7 @@ int main(int argc,char **argv,char** envp)
     int port;
     running = 1;
 
-    //REVISAR FUNCION glibc
-    /* It is also possible to use glibc function deamon()
-	* at this point, but it is useful to customize your daemon. */
-    //daemonize();
-
-    //LEE LOS DATOS DEL ARCHIVO DE CONFIGURACION
-
-    /* This global variable can be changed in function handling signal */
-
-    //AQUI COMIENZA EL CODIGO DEL SERVER
-
-    int messageSize = 1000;
+    int messageSize = 1000000;
     char *hexChunk = (char *)malloc(5);
     sprintf(hexChunk, "%x", messageSize);
     int exiting = 1;
@@ -364,7 +362,7 @@ int main(int argc,char **argv,char** envp)
 
     memset((char *)&socketAddress, '\0', sizeof socketAddress.sin_zero);
     //fill out the socket address structure
-	port = *(getPortFromConfigFile());
+    port = *(getPortFromConfigFile());
     socketAddress.sin_family = AF_INET;         //sets up the socket family to AF_INET
     socketAddress.sin_addr.s_addr = INADDR_ANY; //sets up the address to this machine's IP address
     socketAddress.sin_port = htons(port);       //specifies port for clients to connect to this server
@@ -449,9 +447,7 @@ int main(int argc,char **argv,char** envp)
         }
 
         exiting = 1;
-        int *pExiting = &exiting;
-        printf("Waiting...\n");
-        fprintf(log_stream, "Waiting... %d\n", counter++);
+        fprintf(log_stream, "Waiting... %d\n", counter);
         //Accepts the next item in the queue
         errorNo = (nextSocket = accept(fileDescriptor, (struct sockaddr *)&socketAddress, &address_len));
         if (errorNo == -1)
@@ -460,8 +456,10 @@ int main(int argc,char **argv,char** envp)
             exiting = -1;
         }
 
-        else
+        else //accepted correctly
         {
+
+            sprintf(hexChunk, "%x", messageSize);
             char request[10000] = {0};
 
             read(nextSocket, request, 10000); //reads the file
@@ -469,7 +467,7 @@ int main(int argc,char **argv,char** envp)
             if (request == "\0" || request == NULL)
             {
                 httpHeader = HTTP_BAD_REQUEST;
-                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+                sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader));
             }
             else
             {
@@ -497,7 +495,7 @@ int main(int argc,char **argv,char** envp)
                 {
                     perror("Error while reading request");
                     httpHeader = HTTP_BAD_REQUEST;
-                    sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+                    sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader));
                 }
                 else
                 {
@@ -507,9 +505,10 @@ int main(int argc,char **argv,char** envp)
                     //***check if file can be found****//
                     if (access(requestBody, R_OK) == -1)
                     {
+                        free(requestBody);
                         perror("File does not exists or permissions are not granted");
-                        httpHeader = HTTP_NOT_FOUND;
-                        sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
+                        //httpHeader = HTTP_NOT_FOUND;
+                        //sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader));
                     }
                     else //file is good
                     {
@@ -521,15 +520,13 @@ int main(int argc,char **argv,char** envp)
                         /* The content can be sent in 1 piece*/
                         if (messageSize >= fsize)
                         {
-
                             message = (char *)malloc(fsize);
                             nread = fread(message, 1, sizeof(message) * fsize, f);
                             /*Sets up the header*/
                             httpHeader = HTTP_OK;
-                            sendResponse(nextSocket, message, httpHeader, nread, pExiting);
-                            free(requestBody);
-                            free(message);
-                            fclose(f);
+                            exiting = sendResponse(nextSocket, message, httpHeader, nread);
+                            free(message);     
+                            close(nextSocket);                       
                         }
                         else
                         {
@@ -537,74 +534,84 @@ int main(int argc,char **argv,char** envp)
                             /**Chunked content */
                             i = 1;
                             httpHeader = HTTP_CHUNK;
-                            while (i * messageSize < fsize && exiting == 1)
+                            write(nextSocket, httpHeader, strlen(httpHeader));
+                            httpHeader = NO_HEADER;
+                            while (i * messageSize < fsize)
                             {
-
-                                long int hexLen = 5 * sizeof(hexChunk);
-                                int bodyLen = messageSize;
-
-                                long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
-                                message = (char *)malloc(totalSize);
-                                memcpy(message, hexChunk, hexLen); //the hex
+                                //each rn sizes 3
+                                long unsigned int hexLen = strlen(hexChunk);
+                                long unsigned int firstRN = hexLen + 2;
+                                fprintf(log_stream, "Chunk size hex: %s\n", hexChunk);
+                                message = (char *)malloc(firstRN + messageSize + 2);
+                                memcpy(message, hexChunk, hexLen); 
                                 memcpy(message + hexLen, "\r\n", 2);
-                                nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
-                                memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
+                                nread = fread(message + firstRN, 1, messageSize, f);
+                                if (nread < messageSize)
+                                {
+                                    fprintf(log_stream, "Chunk bytes read are less than expected: %d\n", nread);
+                                }
+                                if (nread == -1)
+                                {
+                                    fprintf(log_stream, "Error while reading chunk\n");
+                                }
+                                long unsigned int bodyLen = firstRN + nread;
+                                long unsigned int totalSize = bodyLen + 2;
+                                memcpy(message + bodyLen, "\r\n", 2);
                                 i++;
-                                char *sizet = (char *)malloc(5);
-                                sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
-                                httpHeader = NO_HEADER;
-
+                                exiting = sendResponse(nextSocket, message, NO_HEADER, totalSize);
                                 free(message);
+                                if (exiting == 0)
+                                {
+                                    fprintf(log_stream, "Exiting == 0 in chunks\n");
+                                    break;
+                                }
                             }
                             if (exiting == 1)
                             {
-                                httpHeader = NO_HEADER;
-                                int bodyLen = fsize - (i - 1) * messageSize;
-                                sprintf(hexChunk, "%x", bodyLen);
-                                long int hexLen = 5 * sizeof(hexChunk);
-                                long int totalSize = hexLen + bodyLen + 4; //2 \r\n per message
-                                message = (char *)malloc(totalSize);
+                                long unsigned int lastChunkSize = fsize - (i - 1) * messageSize;
+                                sprintf(hexChunk, "%lx", lastChunkSize);
+                                fprintf(log_stream, "Last chunk size hex: %s", hexChunk);
+                                long unsigned int hexLen = strlen(hexChunk);
+                                long unsigned int firstRN = hexLen + 2;
+                                message = (char *)malloc(firstRN + lastChunkSize + 2);
                                 memcpy(message, hexChunk, hexLen); //the hex
                                 memcpy(message + hexLen, "\r\n", 2);
-                                nread = fread(message + hexLen + 2, 1, bodyLen, f); //the chunk
-                                memcpy(message + hexLen + 2 + bodyLen, "\r\n", 2);
-                                sendResponse(nextSocket, message, httpHeader, totalSize, pExiting);
-
+                                nread = fread(message + firstRN, 1, lastChunkSize, f); //the chunk
+                                if (nread < lastChunkSize)
+                                {
+                                    fprintf(log_stream, "Last chunk bytes read are less than expected: %d", nread);
+                                }
+                                if (nread == -1)
+                                {
+                                    fprintf(log_stream, "Error while reading chunk\n");
+                                }
+                                long unsigned int bodyLen = firstRN + nread;
+                                long unsigned int totalSize = bodyLen + 2;
+                                memcpy(message + bodyLen, "\r\n", 2);
+                                exiting = sendResponse(nextSocket, message, NO_HEADER, totalSize);
                                 free(message);
                                 if (exiting == 1)
                                 {
-                                    printf("Finishing the chunking");
-                                    //finish the chunking
-                                    char *endMessage = "0\r\n\r\n";
-                                    write(nextSocket, endMessage, 6);
-                                }
-                                else
-                                {
-
-                                    perror("Error last request");
-									httpHeader = HTTP_INTERNAL;
-				                    sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
-
+                                    write(nextSocket, "0\r\n\r\n", 5);
+                                    close(nextSocket);
+                                    
+                                }else{
+                                    fprintf(log_stream, "Exiting == 0 in last chunk\n");
                                 }
                             }
                             else
                             {
 
-                                perror("Error previous chunks");
-								httpHeader = HTTP_INTERNAL;
-			                    sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader), pExiting);
-
-
+                                fprintf(log_stream, "Error in chunk: %d", i);
                             }
-                            fclose(f);
-
-                            free(requestBody);
                         }
+                        fclose(f);
+                        free(requestBody);
                     }
                 }
             }
 
-            close(nextSocket);
+            
         }
 
         /* Real server should use select() or poll() for waiting at
