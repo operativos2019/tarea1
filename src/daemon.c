@@ -507,8 +507,8 @@ int main(int argc, char **argv, char **envp)
                     {
                         free(requestBody);
                         perror("File does not exists or permissions are not granted");
-                        //httpHeader = HTTP_NOT_FOUND;
-                        //sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader));
+                        httpHeader = HTTP_NOT_FOUND;
+                        sendResponse(nextSocket, httpHeader, NO_HEADER, strlen(httpHeader));
                     }
                     else //file is good
                     {
@@ -526,7 +526,6 @@ int main(int argc, char **argv, char **envp)
                             httpHeader = HTTP_OK;
                             exiting = sendResponse(nextSocket, message, httpHeader, nread);
                             free(message);     
-                            close(nextSocket);                       
                         }
                         else
                         {
@@ -593,7 +592,6 @@ int main(int argc, char **argv, char **envp)
                                 if (exiting == 1)
                                 {
                                     write(nextSocket, "0\r\n\r\n", 5);
-                                    close(nextSocket);
                                     
                                 }else{
                                     fprintf(log_stream, "Exiting == 0 in last chunk\n");
@@ -610,6 +608,7 @@ int main(int argc, char **argv, char **envp)
                     }
                 }
             }
+            close(nextSocket);
 
             
         }
